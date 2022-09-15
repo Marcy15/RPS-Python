@@ -4,3 +4,5 @@
 
 Ideális/ajánlott build parancs:
 `pyinstaller.exe --onefile --noconsole --icon="media\iconRounded.ico" main.py`
+Használt könyvtár(ok):
+`pygame`
