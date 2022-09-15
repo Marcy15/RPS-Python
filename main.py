@@ -4,6 +4,8 @@ import os
 import buttons
 import centerText
 import random
+import gameStates
+import variables
 
 pygame.init()
 
@@ -47,18 +49,8 @@ quitBtn = buttons.Button(885,525,100,50,defaultLongButtonImage,defaultLongButton
 resetBtn = buttons.Button(770,525,100,50,defaultLongButtonImage,defaultLongButtonImageHover)
 
 font = pygame.font.Font(os.path.join("media","font.ttf"), 16)
-
-playerTool = False
-pcTool = False
-
-selected = False
-ended = False
-
-global start_time
-start_time = False
-
-global fade
-fade = 255
+fontMid = pygame.font.Font(os.path.join("media","font.ttf"), 20)
+fontBig = pygame.font.Font(os.path.join("media","font.ttf"),42)
 
 def convertStringToImage(string):
     if(string == "r"): return rockImageMedium.copy()
@@ -67,93 +59,79 @@ def convertStringToImage(string):
     if(string == "q"): return questionmarkImageMedium.copy()
     return False
 
-def restartGame():
-    global pcTool
-    global playerTool
-    global selected
-    global ended
-    global start_time
-    global fade
-    pcTool = "q"
-    playerTool = "q"
-    selected = False
-    ended = False
-    start_time = False
-    fade = 255
-
-def checkGame():
-    if(playerTool == pcTool):
-        print("Döntetlen")
-        restartGame()
-    if(playerTool == "r" and pcTool == "p"):
-        print("Vesztettél!")
-        restartGame()
-    if(playerTool == "p" and pcTool == "s"):
-        print("Vesztettél!")
-        restartGame()
-    if(playerTool == "s" and pcTool == "r"):
-        print("Vesztettél!")
-        restartGame()
-    if(playerTool == "r" and pcTool == "s"):
-        print("Győztél!")
-        restartGame()
-    if(playerTool == "p" and pcTool == "r"):
-        print("Győztél!")
-        restartGame()
-    if(playerTool == "s" and pcTool == "p"):
-        print("Győztél!")
-        restartGame()
-
 def drawWindow():
     WIN.blit(backgroundToolbar,(0,0))
-    global playerTool
-    global pcTool
-    global selected
-    global ended
-    global fade
     
-    if rockBtn.draw(WIN) and selected == False:
-        playerTool = "r"
-        selected = True
-    if paperBtn.draw(WIN) and selected == False:
-        playerTool = "p"
-        selected = True
-    if scissorsBtn.draw(WIN) and selected == False:
-        playerTool = "s"
-        selected = True
+    if rockBtn.draw(WIN) and variables.getSelected() == False:
+        variables.setPlayerTool("r")
+        variables.setSelected(True)
+    if paperBtn.draw(WIN) and variables.getSelected() == False:
+        variables.setPlayerTool("p")
+        variables.setSelected(True)
+    if scissorsBtn.draw(WIN) and variables.getSelected() == False:
+        variables.setPlayerTool("s")
+        variables.setSelected(True)
 
-    viewPlayerTool = convertStringToImage(playerTool)
-    viewPcTool = convertStringToImage(pcTool)
+    viewPlayerTool = convertStringToImage(variables.getPlayerTool())
+    viewPcTool = convertStringToImage(variables.getPcTool())
 
-    viewPcTool.set_alpha(fade)
+    viewPcTool.set_alpha(variables.getFade())
+
+    if(variables.getEnded() == "d"):
+        centerText.render(WIN,"Döntetlen!",fontBig,(0,0,1000,500),(41, 143, 171))
+    if(variables.getEnded() == "w"):
+        centerText.render(WIN,"Nyertél!",fontBig,(0,0,1000,500),(126, 196, 51))
+    if(variables.getEnded() == "l"):
+        centerText.render(WIN,"Vesztettél!",fontBig,(0,0,1000,500),(222, 75, 53))
 
     WIN.blit(viewPlayerTool,(64,500-256-128)) # player
     WIN.blit(viewPcTool,(1000-256-64,500-256-128)) # pc
 
-    if selected == True and ended == False:
+    if variables.getSelected() == True and variables.getEnded() == False:
 
-        fade = fade - 4
+        variables.setFade(variables.getFade() - 4)
         
-        if(fade <= 0):
-            ended = True
-            fade = 255
-            pcTool = random.randint(0,2)
-            if(pcTool == 0): pcTool = "r"
-            if(pcTool == 1): pcTool = "p"
-            if(pcTool == 2): pcTool = "s"
+        if(variables.getFade() <= 0):
+            variables.setEnded(True)
+            variables.setFade(255)
+            tempPcTool = random.randint(0,2)
+            if(tempPcTool == 0): tempPcTool = "r"
+            if(tempPcTool == 1): tempPcTool = "p"
+            if(tempPcTool == 2): tempPcTool = "s"
+            variables.setPcTool(tempPcTool)
 
-            global start_time
-            start_time = pygame.time.get_ticks() + 2000
+            variables.setCheckTime(pygame.time.get_ticks() + 2000)
+
+            gameStates.checkGame()
     
 
     if quitBtn.draw(WIN):
         pygame.quit()
         exit()
     if resetBtn.draw(WIN):
-        print("Reset")
+        variables.setTotalPlayed(0)
+        variables.setPcWon(0)
+        variables.setPlayerWon(0)
+        gameStates.restartGame()
+        return
 
-    centerText.render(WIN,"Kilépés",font,quitBtn.pos(),(200,200,200))
-    centerText.render(WIN,"Reset",font,resetBtn.pos(),(200,200,200))
+    centerText.render(WIN,"Kilépés",font,quitBtn.pos(),(230,230,230))
+    centerText.render(WIN,"Reset",font,resetBtn.pos(),(230,230,230))
+
+    #pygame.draw.rect(WIN,(0,0,0),pygame.Rect(270,515,70,70))
+    #pygame.draw.rect(WIN,(0,0,0),pygame.Rect(685,515,70,70))
+    #pygame.draw.rect(WIN,(100,100,10),pygame.Rect(340,515,345,70))
+
+
+    kd = "-"
+    if(variables.getTotalPlayed() != 0):
+        kd = variables.getPlayerWon()/variables.getTotalPlayed()*100
+        kd = str(int(kd)) + "%"
+
+    centerText.render(WIN,str(variables.getPlayerWon()),fontBig,(270,515,70,70),(126, 196, 51))
+    centerText.render(WIN,str(variables.getPcWon()),fontBig,(685,515,70,70),(222, 75, 53))
+    centerText.render(WIN,"Nyerési arány: "+kd,fontMid,(340,515,345,50),(230,230,230))
+    centerText.render(WIN,"Lejátszott játékok: "+str(variables.getTotalPlayed()),fontMid,(340,535,345,70),(230,230,230))
 
     WIN.blit(rockImageSmall,(rockBtn.cords()))
     WIN.blit(paperImageSmall,(paperBtn.cords()))
@@ -163,17 +141,8 @@ def drawWindow():
 
 
 def main():
-    global playerTool
-    global pcTool
-    global selected
-    global ended
-    global start_time
-    start_time = False
-    selected = False
-    playerTool = "q"
-    pcTool = "q"
-    ended = False
     run = True
+    gameStates.restartGame()
     clock = pygame.time.Clock()
     while run:
         clock.tick(FPS)
@@ -181,8 +150,10 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
 
-        if(selected):
-            if(start_time - pygame.time.get_ticks()) <= 0: checkGame()
+        if(variables.getSelected() == True):
+            if variables.getCheckTime() != False and (variables.getCheckTime() - pygame.time.get_ticks()) <= 0:
+                gameStates.restartGame()
+        
         drawWindow()
 
     pygame.quit()
